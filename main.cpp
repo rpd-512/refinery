@@ -2,6 +2,7 @@
 #include "include/debug_utils.h"
 #include "include/nearest_neighbour_utils.h"
 #include "include/worker_utils.h"
+#include <chrono>
 
 void clear_screen(){
     #ifdef _WIN32
@@ -40,9 +41,24 @@ int main(){
     engine.rebuild();
     cout << "Balance Score: " << engine.get_balance_score() << endl;
 
+    cout << "Query Datapoint:" << endl;
     print_datapoint(dp);
-    Datapoint result = engine.query(dp);
-    print_datapoint(result);
+
+    //measure time
+    auto start = std::chrono::high_resolution_clock::now();
+    cout << "KD tree search result:" << endl;
+    Datapoint result_qry = engine.query(dp);
+    print_datapoint(result_qry);
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::micro> duration = end - start;
+    std::cout << "KD tree search time: " << duration.count() << " microseconds" << std::endl;
+    start = std::chrono::high_resolution_clock::now();
+    cout << "Linear search result:" << endl;
+    Datapoint result_lin = engine.linear_search(dp);
+    print_datapoint(result_lin);
+    end = std::chrono::high_resolution_clock::now();
+    duration = end - start;
+    std::cout << "Linear search time: " << duration.count() << " microseconds" << std::endl;
 
     return 0;
 }

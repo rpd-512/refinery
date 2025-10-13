@@ -24,7 +24,8 @@ double distance(const std::vector<double>& a, const std::vector<double>& b) {
         double diff = a[i] - b[i];
         sum += diff * diff;
     }
-    return std::sqrt(sum);
+    return sum;
+    //return std::sqrt(sum);
 }
 
 #endif
