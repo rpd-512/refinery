@@ -46,13 +46,27 @@ public:
 
     Datapoint query(const Datapoint& target) {
         Datapoint nearest;
-        nn_search(root, target, 1, nearest);
+        nn_search(root, target, 0, nearest);
         return nearest;
     }
     
     void rebuild() {
         clear(root,1);
         root = build(nodes, 0);
+    }
+
+    Datapoint linear_search(const Datapoint& target) {
+        Datapoint nearest;
+        double min_dist = std::numeric_limits<double>::max();
+
+        for (const auto& node : nodes) {
+            double dist = distance(target.features, node->data.features);
+            if (dist < min_dist) {
+                min_dist = dist;
+                nearest = node->data;
+            }
+        }
+        return nearest;
     }
 
 private:
