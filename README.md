@@ -1,2 +1,2 @@
 #Refinery
-Library to use Nearest Refiner (NR) algrithm
+Library to use Nearest Refiner (NR) algorithm
