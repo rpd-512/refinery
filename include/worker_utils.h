@@ -17,7 +17,7 @@ double uniform(double low, double high) {
     return dist(gen);
 }
 
-double distance(const std::vector<double>& a, const std::vector<double>& b) {
+double squared_distance(const std::vector<double>& a, const std::vector<double>& b) {
     if (a.size() != b.size()) throw std::invalid_argument("Vectors must be of same length");
     double sum = 0.0;
     for (size_t i = 0; i < a.size(); i++) {
