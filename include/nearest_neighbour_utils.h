@@ -60,7 +60,7 @@ public:
         double min_dist = std::numeric_limits<double>::max();
 
         for (const auto& node : nodes) {
-            double dist = distance(target.features, node->data.features);
+            double dist = squared_distance(target.features, node->data.features);
             if (dist < min_dist) {
                 min_dist = dist;
                 nearest = node->data;
@@ -107,14 +107,14 @@ private:
         nn_search(next_branch, target, depth + 1, nearest);
 
         // Update nearest if this node is closer
-        if (nearest.features.empty() || distance(target.features, node->data.features) < distance(target.features, nearest.features)) {
+        if (nearest.features.empty() || squared_distance(target.features, node->data.features) < squared_distance(target.features, nearest.features)) {
             nearest = node->data;
         }
 
         // Check if we need to explore the opposite branch
         if (opposite_branch != nullptr) {
             double diff = target.features[axis] - node->data.features[axis];
-            if (diff * diff < distance(target.features, nearest.features)) {
+            if (diff * diff < squared_distance(target.features, nearest.features)) {
                 nn_search(opposite_branch, target, depth + 1, nearest);
             }
         }
