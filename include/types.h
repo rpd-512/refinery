@@ -20,6 +20,7 @@ struct KDNode{
     KDNode* left;
 };
 
+using State = std::pair<Datapoint, double>;
 
 
 #endif
