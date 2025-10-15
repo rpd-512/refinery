@@ -23,25 +23,22 @@ public:
         root = build(nodes);
     }
 
-    float get_balance_score() {
-        if (root == nullptr) return 1.0f; // Empty tree is perfectly balanced
-
-        int max_h = get_max_height(root);
-        int min_h = get_min_height(root);
-
-        if (min_h == 0 && max_h == 0) return 1.0f;
-
-        float diff = abs(min_h - max_h);
-        float max_height = std::max(min_h, max_h);
-
-        return 1.0f - (diff / max_height); // 1 = perfect balance
-
-    }
-
-    void insert(const Datapoint& dp) {
+    void insert(const Datapoint& dp, bool rebalance=true) {
         KDNode* new_node = new KDNode{dp, nullptr, nullptr};
         nodes.push_back(new_node);
         insert_into_kd_tree(root, *new_node, 0);
+        if(rebalance && get_balance_score() < 0.7) {
+            rebuild();
+        }
+    }
+
+    void insert(const vector<Datapoint>& dp) {
+        for (const auto& d : dp) {
+            insert(d, false);
+        }
+        if(get_balance_score() < 0.7) {
+            rebuild();
+        }
     }
 
     Datapoint query(const Datapoint& target) {
@@ -50,11 +47,6 @@ public:
         return nearest;
     }
     
-    void rebuild() {
-        clear(root,1);
-        root = build(nodes, 0);
-    }
-
     Datapoint linear_search(const Datapoint& target) {
         Datapoint nearest;
         double min_dist = std::numeric_limits<double>::max();
@@ -73,6 +65,26 @@ private:
     KDNode* root = nullptr;
     int k = 0;
     vector<KDNode*> nodes;
+
+    void rebuild() {
+        clear(root,1);
+        root = build(nodes, 0);
+    }
+
+    float get_balance_score() {
+        if (root == nullptr) return 1.0f; // Empty tree is perfectly balanced
+
+        int max_h = get_max_height(root);
+        int min_h = get_min_height(root);
+
+        if (min_h == 0 && max_h == 0) return 1.0f;
+
+        float diff = abs(min_h - max_h);
+        float max_height = std::max(min_h, max_h);
+
+        return 1.0f - (diff / max_height); // 1 = perfect balance
+    }
+
 
     KDNode* build(vector<KDNode*> point_nodes, int depth = 0) {
         if (point_nodes.empty()) return nullptr;
