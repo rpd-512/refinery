@@ -4,6 +4,7 @@
 #include "types.h"
 #include <cmath>
 #include <stdexcept>
+#include <functional>
 #include <numeric>
 
 class LossFunction {
@@ -27,7 +28,8 @@ public:
     }
 
     // Huber Loss
-    static double huber_loss(const Groundtruth& y, const Groundtruth& y_hat, double delta = 1.0) {
+    static double huber_loss(const Groundtruth& y, const Groundtruth& y_hat) {
+        double delta = 2.0;
         validate_inputs(y, y_hat);
         double sum = 0.0;
         for (size_t i = 0; i < y.size(); ++i) {
@@ -85,20 +87,17 @@ public:
     Feature target_feature; // target feature for refinement
 
     Optimizer(
-        Feature (*forward_function)(const Groundtruth&),
-        double (*loss_function)(const Groundtruth&, const Feature&)
-    ) {
-        this->forward_function = forward_function;
-        this->loss_function = loss_function;
-    }
+        std::function<Feature(const Groundtruth&)> forward_function,
+        std::function<double(const Groundtruth&, const Feature&)> loss_function
+    ) : forward_function(forward_function), loss_function(loss_function) {}
+
     virtual ~Optimizer() = default;
     virtual State optimize(const State& current_state) = 0;
     
 protected:
-    double infinitesimal = 1e-9; // infinitesimal step size
-    Feature (*forward_function)(const Groundtruth&) = nullptr; // store the function pointer
-    double (*loss_function)(const Groundtruth&, const Groundtruth&) = nullptr; // store the function pointer
-
+    double infinitesimal = 1e-6; // infinitesimal step size
+    std::function<Feature(const Groundtruth&)> forward_function; // can capture variables
+    std::function<double(const Groundtruth&, const Feature&)> loss_function;
     double compute_loss(const Groundtruth& gt) {
         if(forward_function) {
             Feature output_feature = forward_function(gt);
@@ -122,12 +121,11 @@ protected:
             double loss_minus = compute_loss(temp.groundtruth);
 
             derivative[i] = (loss_plus - loss_minus) / (2.0 * infinitesimal);
-
+            // debug print
             temp.groundtruth[i] = original;
         }
         return derivative;
     }
-
 };
 
 class RefinementEngine {
