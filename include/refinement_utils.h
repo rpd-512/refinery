@@ -2,21 +2,132 @@
 #define REFINEMENT_UTILS_H
 
 #include "types.h"
+#include <cmath>
+#include <stdexcept>
+#include <numeric>
 
-//SGD, Adam, AdamW, RMSprop, Adagrad, Adadelta, NAdam
+class LossFunction {
+public:
+    // Mean Squared Error
+    static double mse_loss(const Groundtruth& y, const Groundtruth& y_hat) {
+        validate_inputs(y, y_hat);
+        double sum = 0.0;
+        for (size_t i = 0; i < y.size(); ++i)
+            sum += std::pow(y[i] - y_hat[i], 2);
+        return sum / y.size();
+    }
+
+    // Mean Absolute Error
+    static double mae_loss(const Groundtruth& y, const Groundtruth& y_hat) {
+        validate_inputs(y, y_hat);
+        double sum = 0.0;
+        for (size_t i = 0; i < y.size(); ++i)
+            sum += std::fabs(y[i] - y_hat[i]);
+        return sum / y.size();
+    }
+
+    // Huber Loss
+    static double huber_loss(const Groundtruth& y, const Groundtruth& y_hat, double delta = 1.0) {
+        validate_inputs(y, y_hat);
+        double sum = 0.0;
+        for (size_t i = 0; i < y.size(); ++i) {
+            double diff = y[i] - y_hat[i];
+            if (std::fabs(diff) <= delta)
+                sum += 0.5 * diff * diff;
+            else
+                sum += delta * (std::fabs(diff) - 0.5 * delta);
+        }
+        return sum / y.size();
+    }
+
+    // Cosine Error (1 - cosine similarity)
+    static double cosine_error(const Groundtruth& y, const Groundtruth& y_hat) {
+        validate_inputs(y, y_hat);
+        double dot = 0.0, norm_y = 0.0, norm_yhat = 0.0;
+
+        for (size_t i = 0; i < y.size(); ++i) {
+            dot += y[i] * y_hat[i];
+            norm_y += y[i] * y[i];
+            norm_yhat += y_hat[i] * y_hat[i];
+        }
+
+        norm_y = std::sqrt(norm_y);
+        norm_yhat = std::sqrt(norm_yhat);
+
+        if (norm_y == 0.0 || norm_yhat == 0.0)
+            throw std::runtime_error("Cosine error: zero-magnitude vector.");
+
+        double cosine_similarity = dot / (norm_y * norm_yhat);
+        return 1.0 - cosine_similarity;
+    }
+
+    // Log-Cosh Error
+    static double logcosh_error(const Groundtruth& y, const Groundtruth& y_hat) {
+        validate_inputs(y, y_hat);
+        double sum = 0.0;
+        for (size_t i = 0; i < y.size(); ++i) {
+            double diff = y_hat[i] - y[i];
+            sum += std::log(std::cosh(diff));
+        }
+        return sum / y.size();
+    }
+
+private:
+    static void validate_inputs(const Groundtruth& y, const Groundtruth& y_hat) {
+        if (y.size() != y_hat.size() || y.empty())
+            throw std::invalid_argument("LossFunction: input vectors must be non-empty and of equal size.");
+    }
+};
 
 
 class Optimizer {
 public:
-    Optimizer(double (*loss_fn)(const Datapoint&)) {
-        forward_loss = loss_fn;
+    Feature target_feature; // target feature for refinement
+
+    Optimizer(
+        Feature (*forward_function)(const Groundtruth&),
+        double (*loss_function)(const Groundtruth&, const Feature&)
+    ) {
+        this->forward_function = forward_function;
+        this->loss_function = loss_function;
     }
     virtual ~Optimizer() = default;
     virtual State optimize(const State& current_state) = 0;
     
-private:
-    double eta = 1e-5; // infinitesimal step size
-    double (*forward_loss)(const Datapoint&); // store the function pointer
+protected:
+    double infinitesimal = 1e-9; // infinitesimal step size
+    Feature (*forward_function)(const Groundtruth&) = nullptr; // store the function pointer
+    double (*loss_function)(const Groundtruth&, const Groundtruth&) = nullptr; // store the function pointer
+
+    double compute_loss(const Groundtruth& gt) {
+        if(forward_function) {
+            Feature output_feature = forward_function(gt);
+            double loss = loss_function(output_feature, target_feature);
+            return loss;
+        }
+        throw std::runtime_error("Loss function not defined.");
+    }
+
+    Groundtruth gradient_approximation(const Datapoint& dp) {
+        Groundtruth derivative(dp.groundtruth.size(), 0.0);
+        Datapoint temp = dp;  // copy for perturbation
+
+        for (size_t i = 0; i < dp.groundtruth.size(); ++i) {
+            double original = temp.groundtruth[i];
+
+            temp.groundtruth[i] = original + infinitesimal;
+            double loss_plus = compute_loss(temp.groundtruth);
+
+            temp.groundtruth[i] = original - infinitesimal;
+            double loss_minus = compute_loss(temp.groundtruth);
+
+            derivative[i] = (loss_plus - loss_minus) / (2.0 * infinitesimal);
+
+            temp.groundtruth[i] = original;
+        }
+        return derivative;
+    }
+
 };
 
 class RefinementEngine {
@@ -31,16 +142,15 @@ public:
         this->seed_vector = seed_vector;
     }
 
-    void clear_logs() {
-        data_history.clear();
-        loss_history.clear();
+    void set_target(const Feature& target_feature) {
+        optimizer->target_feature = target_feature;
     }
 
     void set_logging(bool log_flag) {
         this->log_flag = log_flag;
     }
 
-    Datapoint refine(int iterations) {
+    Groundtruth refine(int iterations) {
         clear_logs();
         if(seed_vector.features.empty()) {
             throw std::runtime_error("Seed vector not set.");
@@ -53,7 +163,17 @@ public:
                 loss_history.push_back(current_state.second);
             }
         }
-        return current_state.first;
+        return current_state.first.groundtruth;
+    }
+    vector<double> get_loss_history() const {
+        return loss_history;
+    }
+    vector<Groundtruth> get_data_history() const {
+        vector<Groundtruth> data_history;
+        for(const auto& dp : this->data_history) {
+            data_history.push_back(dp.groundtruth);
+        }
+        return data_history;
     }
 
 private:
@@ -62,6 +182,11 @@ private:
     vector<Datapoint> data_history;
     vector<double> loss_history;
     bool log_flag = false;
+
+    void clear_logs() {
+        data_history.clear();
+        loss_history.clear();
+    }
 };
 
 #endif // REFINEMENT_UTILS_H
