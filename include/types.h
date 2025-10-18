@@ -8,12 +8,23 @@ using std::cout;
 using std::vector;
 using std::endl;
 
-struct Datapoint{
+using Feature = std::vector<double>;
+using Groundtruth = std::vector<double>;
+
+struct Datapoint {
     int id;
-    vector<double> features;
-    vector<double> groundtruth;
+    Feature features;    // input features (position)
+    Groundtruth groundtruth; // value for that feature to exist (angle)Groundtruth
+    // Static factory method
+    static Datapoint from_vector(const vector<double>& vec, int id = 0) {
+        return Datapoint{id, vec, {}};
+    }
 };
 
+struct RefinementSample{
+    Datapoint data;
+    Groundtruth target; // Target values
+};
 struct KDNode{
     Datapoint data;
     KDNode* right;
@@ -21,6 +32,5 @@ struct KDNode{
 };
 
 using State = std::pair<Datapoint, double>;
-
 
 #endif
