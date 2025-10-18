@@ -23,67 +23,36 @@ int main(){
     cout << "|_|  \\___|_| |_|_| |_|\\___|_|   \\__, |\n";
     cout << "                                |___/ \n";
     cout << "A simple nearest refiner library for general usecase\n";
-    
-    Datapoint dp;
-    dp.id = 1;
-    dp.features = {10.5, 20.3, 30.7};
-    dp.groundtruth = {11.0, 21.0, 31.0};
 
-    NearestNeighbourEngine engine(3, {});
-    int n=1000;
-    vector<Datapoint> initial_points;
-    for(int i=0; i<n; i++){
-        initial_points.push_back(Datapoint{
-            i+2,
-            {uniform(0, 20), uniform(0, 40), uniform(0, 50)},
-            {uniform(-10, 10), uniform(-10, 10), uniform(-10, 10)}
-        });
-    }
-    engine.insert(initial_points);
-    cout << "Inserted " << n << " datapoints." << endl;
-    auto start = std::chrono::high_resolution_clock::now();
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double, std::micro> duration = end - start;
+    vector<Datapoint> data = read_csv("/home/rapidfire69/rapid/coding/researchWorks/inverse_kinematics/dataset_generation_and_compilation/kaggle_upload/kuka_youbot.csv");
 
-    cout << "Query Datapoint:" << endl;
-    print_datapoint(dp);
+    vector<double> search_vector = {20, -10, 100};
 
-    //measure time
-    start = std::chrono::high_resolution_clock::now();
-    cout << "KD tree search result:" << endl;
-    Datapoint result_qry = engine.query(dp);
-    print_datapoint(result_qry);
-    end = std::chrono::high_resolution_clock::now();
-    duration = end - start;
-    std::cout << "KD tree search time: " << duration.count() << " microseconds" << std::endl;
-    start = std::chrono::high_resolution_clock::now();
-    cout << "Linear search result:" << endl;
-    Datapoint result_lin = engine.linear_search(dp);
-    print_datapoint(result_lin);
-    end = std::chrono::high_resolution_clock::now();
-    duration = end - start;
-    std::cout << "Linear search time: " << duration.count() << " microseconds" << std::endl;
+    NearestNeighbourEngine nne(3, data);
+    Datapoint result = nne.query(Datapoint::from_vector(search_vector));
+    print_datapoint(result);
 
-    cout << "\n\nTesting Refinement Engine with Gradient Descent Optimizer\n";
-
-
-    auto fwd_func = [](const Groundtruth& gt) {
-        cout << "Forward function called with groundtruth of size: " << gt.size() << endl;
-        Feature f = {1,2,3};
-        return f;
+    vector<dh_param> robot = loadDHFromYAML("/home/rapidfire69/rapid/coding/researchWorks/inverse_kinematics/metaheuristic_algorithms/FORGE/example_dh_parameters/kuka_youbot.yaml");
+    auto fwd_func = [&robot](const Feature& f) -> Feature {
+        return forward_kinematics(f, robot);
     };
-    Feature target = {2,3,5};
-    GradientDescentOptimizer optimizer(fwd_func, LossFunction::cosine_error);
-    RefinementEngine ref_engine(&optimizer);
-    ref_engine.set_seed(dp);
-    ref_engine.set_logging(true);
-    ref_engine.set_target(target);
-    auto refined = ref_engine.refine(100);
-    cout << "Refined Datapoint:" << endl;
-    print_datapoint(Datapoint::from_vector(refined));
-    for(auto his: ref_engine.get_loss_history()) {
-        cout << his << ", ";
-    }
-    cout << endl;
+
+    GradientDescentOptimizer sgd(
+        fwd_func,
+        LossFunction::mse_loss,
+        0.00001
+    );
+
+    RefinementEngine re(&sgd);
+    re.set_seed(result);
+    re.set_target(search_vector);
+    Groundtruth refined = re.refine(2000);
+    cout << "\n\nRefined Result: " << endl;
+    cout << "Expected Position: \n\t";
+    print_vector(search_vector);
+    cout << "Refined Angles: \t";
+    print_vector(refined);
+    cout << "Forward Kinematics of Refined Angles:\n\t";
+    print_vector(fwd_func(refined));
     return 0;
 }
