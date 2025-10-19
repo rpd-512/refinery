@@ -21,7 +21,7 @@ public:
         Groundtruth grad = gradient_approximation(current_state.first);
 
         // Gradient Descent Update: x = x - η * ∇L
-        for (size_t i = 0; i < new_state.first.groundtruth.size(); ++i) {
+        for (size_t i = 0; i < grad.size(); ++i) {
             new_state.first.groundtruth[i] -= learning_rate * grad[i];
         }
         new_state.second = compute_loss(new_state.first.groundtruth);
@@ -31,6 +31,86 @@ private:
     double learning_rate;
 };
 
+class GradientMomentumOptimizer : public Optimizer {
+public:
+    GradientMomentumOptimizer(
+        std::function<Feature(const Groundtruth&)> forward_function,
+        std::function<double(const Groundtruth&, const Feature&)> loss_function,
+        double learning_rate = 0.01,
+        double momentum = 0.9
+    ) : Optimizer(forward_function, loss_function),
+        learning_rate(learning_rate), momentum(momentum) {}
+
+    State optimize(const State& current_state) override {
+        if (!forward_function || !loss_function)
+            throw std::runtime_error("GDWithMomentumOptimizer: missing function pointers.");
+
+        State new_state = current_state;
+        Groundtruth grad = gradient_approximation(current_state.first);
+        // Initialize velocity once, matching parameter size
+        const size_t dim = grad.size();
+
+        if (velocity.empty())
+            velocity = std::vector<double>(dim, 0.0);
+
+        // Gradient Descent with momentum:
+        for (size_t i = 0; i < new_state.first.groundtruth.size(); ++i) {
+            velocity[i] = momentum * velocity[i] - learning_rate * grad[i];
+            new_state.first.groundtruth[i] += velocity[i];
+        }
+        new_state.second = compute_loss(new_state.first.groundtruth);
+        return new_state;
+    }
+
+private:
+    double learning_rate;
+    double momentum;
+    vector<double> velocity;
+
+};
+
+class GradientNesterovOptimizer : public Optimizer {
+public:
+    GradientNesterovOptimizer(
+        std::function<Feature(const Groundtruth&)> forward_function,
+        std::function<double(const Groundtruth&, const Feature&)> loss_function,
+        double learning_rate = 0.01,
+        double momentum = 0.9
+    ) : Optimizer(forward_function, loss_function),
+        learning_rate(learning_rate), momentum(momentum) {}
+
+    State optimize(const State& current_state) override {
+        if (!forward_function || !loss_function)
+            throw std::runtime_error("GradientNesterovOptimizer: missing function pointers.");
+
+        State new_state = current_state;
+        State lookahead_state = current_state;
+
+        if (velocity.empty()) {
+            velocity.resize(current_state.first.groundtruth.size(), 0.0);
+        }
+
+        // Lookahead step
+        for (size_t i = 0; i < lookahead_state.first.groundtruth.size(); ++i) {
+            lookahead_state.first.groundtruth[i] += momentum * velocity[i];
+        }
+        Groundtruth grad = gradient_approximation(lookahead_state.first);
+        size_t dim = grad.size();
+        
+        // --- Nesterov update ---
+        for (size_t i = 0; i < dim; ++i) {
+            velocity[i] = momentum * velocity[i] - learning_rate * grad[i];
+            new_state.first.groundtruth[i] += velocity[i];
+        }
+
+        new_state.second = compute_loss(new_state.first.groundtruth);
+        return new_state;
+    }
+private:
+    double learning_rate;
+    double momentum;
+    vector<double> velocity;
+};
 
 class AdamOptimizer : public Optimizer {
 public:
@@ -82,6 +162,14 @@ private:
     double epsilon;
     int t;
     std::vector<double> m, v; // Moment estimates
+};
+
+class AdagradOptimizer : public Optimizer {
+    // To be implemented
+};
+
+class RMSpropOptimizer : public Optimizer {
+    // To be implemented
 };
 
 #endif // REFINER_CONTENT_H
