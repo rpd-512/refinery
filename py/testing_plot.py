@@ -91,7 +91,7 @@ def fk_all_joints(joint_angles):
 # =====================
 engine = rf.NearestNeighbourEngine(3, [])
 dp = []
-for row in tqdm.tqdm(data):
+for row in tqdm.tqdm(data[:10]):
     features = [float(x) for x in row[5:8]]
     labels = [float(x) for x in row[8:13]]
     dp.append(rf.Datapoint(6, features, labels))

@@ -62,7 +62,33 @@ PYBIND11_MODULE(py_refinery, m) {
             py::arg("epsilon") = 1e-5
         )
         .def("optimize", &AdamOptimizer::optimize);
-    
+
+    py::class_<GradientMomentumOptimizer, Optimizer>(m, "GradientMomentumOptimizer")
+        .def(py::init<
+            std::function<Feature(const Groundtruth&)>,
+            std::function<double(const Groundtruth&, const Feature&)>,
+            double,
+            double>(),
+            py::arg("forward_function"),
+            py::arg("loss_function"),
+            py::arg("learning_rate") = 0.01,
+            py::arg("momentum") = 0.9
+        )
+        .def("optimize", &GradientMomentumOptimizer::optimize);
+
+    py::class_<GradientNesterovOptimizer, Optimizer>(m, "GradientNesterovOptimizer")
+        .def(py::init<
+            std::function<Feature(const Groundtruth&)>,
+            std::function<double(const Groundtruth&, const Feature&)>,
+            double,
+            double>(),
+            py::arg("forward_function"),
+            py::arg("loss_function"),
+            py::arg("learning_rate") = 0.01,
+            py::arg("momentum") = 0.9
+        )
+        .def("optimize", &GradientNesterovOptimizer::optimize);
+
     py::class_<RefinementEngine>(m, "RefinementEngine")
         .def(py::init<Optimizer*>(), py::arg("optimizer"))
         .def("set_seed", &RefinementEngine::set_seed, py::arg("seed_vector"))
@@ -77,5 +103,6 @@ PYBIND11_MODULE(py_refinery, m) {
         .def_static("mae_loss", &LossFunction::mae_loss)
         .def_static("huber_loss", &LossFunction::huber_loss)
         .def_static("log_cosh_error", &LossFunction::log_cosh_error)
-        .def_static("cosine_error", &LossFunction::cosine_error);
+        .def_static("cosine_error", &LossFunction::cosine_error)
+        .def_static("euclidean_loss", &LossFunction::euclidean_loss);
 }
