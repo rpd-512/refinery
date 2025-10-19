@@ -42,21 +42,4 @@ void print2DVector(const vector<vector<double>>& vec) {
     }
 }
 
-//-----robot-testing-inverse-kinematics-----//
-using namespace Eigen;
-using namespace std;
-using namespace YAML;
-
-typedef struct dh_param{
-    double a;
-    double d;
-    double alpha;
-}dh_param;
-
-typedef struct position3D{
-    double x;
-    double y;
-    double z;
-}position3D;
-
 #endif
