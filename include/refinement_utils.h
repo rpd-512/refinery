@@ -64,7 +64,7 @@ public:
     }
 
     // Log-Cosh Error
-    static double logcosh_error(const Groundtruth& y, const Groundtruth& y_hat) {
+    static double log_cosh_error(const Groundtruth& y, const Groundtruth& y_hat) {
         validate_inputs(y, y_hat);
         double sum = 0.0;
         for (size_t i = 0; i < y.size(); ++i) {
