@@ -18,6 +18,10 @@ public:
         return sum / y.size();
     }
 
+    static double euclidean_loss(const Groundtruth& y, const Groundtruth& y_hat) {
+        return std::sqrt(mse_loss(y, y_hat));
+    }
+
     // Mean Absolute Error
     static double mae_loss(const Groundtruth& y, const Groundtruth& y_hat) {
         validate_inputs(y, y_hat);
