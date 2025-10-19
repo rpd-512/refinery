@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -flto -shared  -o lib/py-refinery.cpython-310-x86_64-linux-gnu.so CMakeFiles/py-refinery.dir/bindings.cpp.o 
