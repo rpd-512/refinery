@@ -165,11 +165,75 @@ private:
 };
 
 class AdagradOptimizer : public Optimizer {
-    // To be implemented
+public:
+    AdagradOptimizer(
+        std::function<Feature(const Groundtruth&)> forward_function,
+        std::function<double(const Groundtruth&, const Feature&)> loss_function,
+        double learning_rate = 0.01,
+        double epsilon = this->infinitesimal;
+    ) : Optimizer(forward_function, loss_function),
+        learning_rate(learning_rate), epsilon(epsilon) {}
+    State optimize(const State& current_state) override {
+        if (!forward_function || !loss_function)
+            throw std::runtime_error("AdagradOptimizer: missing function pointers.");
+
+        State new_state = current_state;
+        Groundtruth grad = gradient_approximation(current_state.first);
+        const size_t dim = grad.size();
+
+        if (accumulated.empty())
+            accumulated.assign(dim, 0.0);
+
+        for (size_t i = 0; i < dim; ++i) {
+            accumulated[i] += grad[i] * grad[i];  // accumulate squared gradients
+            new_state.first.groundtruth[i] -= learning_rate * grad[i] / (std::sqrt(accumulated[i]) + epsilon);
+        }
+
+        new_state.second = compute_loss(new_state.first.groundtruth);
+        return new_state;
+    }
+private:
+    double learning_rate;
+    double epsilon;
+    vector<double> accumulated;
 };
 
 class RMSpropOptimizer : public Optimizer {
-    // To be implemented
+public:
+    RMSpropOptimizer(
+        std::function<Feature(const Groundtruth&)> forward_function,
+        std::function<double(const Groundtruth&, const Feature&)> loss_function,
+        double learning_rate = 0.001,
+        double decay_rate = 0.99,
+        double epsilon = this->infinitesimal
+    ) : Optimizer(forward_function, loss_function),
+        learning_rate(learning_rate), decay_rate(decay_rate), epsilon(epsilon) {}
+
+    State optimize(const State& current_state) override {
+        if (!forward_function || !loss_function)
+            throw std::runtime_error("RMSpropOptimizer: missing function pointers.");
+
+        State new_state = current_state;
+        Groundtruth grad = gradient_approximation(current_state.first);
+        const size_t dim = grad.size();
+
+        if (avg_sq_grad.empty())
+            avg_sq_grad.assign(dim, 0.0);
+
+        for (size_t i = 0; i < dim; ++i) {
+            avg_sq_grad[i] = decay_rate * avg_sq_grad[i] + (1.0 - decay_rate) * grad[i] * grad[i];
+            new_state.first.groundtruth[i] -= learning_rate * grad[i] / (std::sqrt(avg_sq_grad[i]) + epsilon);
+        }
+
+        new_state.second = compute_loss(new_state.first.groundtruth);
+        return new_state;
+    }
+
+private:
+    double learning_rate;
+    double decay_rate;
+    double epsilon;
+    vector<double> avg_sq_grad;
 };
 
 #endif // REFINER_CONTENT_H
