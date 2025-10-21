@@ -88,6 +88,34 @@ PYBIND11_MODULE(py_refinery, m) {
             py::arg("momentum") = 0.9
         )
         .def("optimize", &GradientNesterovOptimizer::optimize);
+    
+    py::class_<AdagradOptimizer, Optimizer>(m, "AdagradOptimizer")
+        .def(py::init<
+            std::function<Feature(const Groundtruth&)>,
+            std::function<double(const Groundtruth&, const Feature&)>,
+            double,
+            double>(),
+            py::arg("forward_function"),
+            py::arg("loss_function"),
+            py::arg("learning_rate") = 0.01,
+            py::arg("epsilon") = 1e-8
+        )
+        .def("optimize", &AdagradOptimizer::optimize);
+
+    py::class_<RMSpropOptimizer, Optimizer>(m, "RMSpropOptimizer")
+        .def(py::init<
+            std::function<Feature(const Groundtruth&)>,
+            std::function<double(const Groundtruth&, const Feature&)>,
+            double,
+            double,
+            double>(),
+            py::arg("forward_function"),
+            py::arg("loss_function"),
+            py::arg("learning_rate") = 0.001,
+            py::arg("decay_rate") = 0.99,
+            py::arg("epsilon") = 1e-8
+        )
+        .def("optimize", &RMSpropOptimizer::optimize);
 
     py::class_<RefinementEngine>(m, "RefinementEngine")
         .def(py::init<Optimizer*>(), py::arg("optimizer"))
