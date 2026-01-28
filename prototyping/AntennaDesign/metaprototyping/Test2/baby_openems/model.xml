@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<openEMS>
+
+  <FDTD>
+    <EndCriteria>1e-5</EndCriteria>
+  </FDTD>
+
+  <Excitation>
+    <Gaussian>
+      <F0>4e9</F0>
+      <FC>2e9</FC>
+    </Gaussian>
+  </Excitation>
+
+  <BoundaryCond>
+    <xmin>PML_8</xmin><xmax>PML_8</xmax>
+    <ymin>PML_8</ymin><ymax>PML_8</ymax>
+    <zmin>PML_8</zmin><zmax>PML_8</zmax>
+  </BoundaryCond>
+
+  <SParameter>
+    <Port>1</Port>
+    <FrequencyRange>
+      <Start>2e9</Start>
+      <Stop>6e9</Stop>
+      <Samples>401</Samples>
+    </FrequencyRange>
+    <File>results/antenna.s1p</File>
+  </SParameter>
+
+  <ContinuousStructure Name="CSX">
+
+    <Grid>
+      <RectilinearGrid DeltaUnit="1e-3">
+        <XLines>-25 -10 0 10 25</XLines>
+        <YLines>-25 -10 0 10 25</YLines>
+        <ZLines>0 1.6 10</ZLines>
+      </RectilinearGrid>
+    </Grid>
+
+    <Material Name="PEC">
+      <Conductivity>5.8e7</Conductivity>
+    </Material>
+
+    <Material Name="FR4">
+      <Epsilon>4.4</Epsilon>
+    </Material>
+
+    <Box Material="FR4" Priority="1">
+      <Start>-20 -20 0</Start>
+      <Stop>20 20 1.6</Stop>
+    </Box>
+
+    <Box Material="PEC" Priority="2">
+      <Start>-20 -20 0</Start>
+      <Stop>20 20 0</Stop>
+    </Box>
+
+    <Box Material="PEC" Priority="3">
+      <Start>-10 -8 1.6</Start>
+      <Stop>10 8 1.6</Stop>
+    </Box>
+
+    <LumpedPort PortNr="1" R="50">
+      <Start>0 -8 0</Start>
+      <Stop>0 -8 1.6</Stop>
+      <Direction>z</Direction>
+    </LumpedPort>
+
+  </ContinuousStructure>
+
+</openEMS>
