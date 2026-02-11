@@ -2,15 +2,15 @@
 #include <pybind11/stl.h>   // for std::vector, std::map bindings
 #include <pybind11/functional.h> // for std::function bindings if needed
 
-#include "../include/types.h"
-#include "../include/nearest_neighbour_utils.h"
-#include "../include/refinement_utils.h"
-#include "../include/refiner_content.h"
+#include "types.h"
+#include "nearest_neighbour_utils.h"
+#include "refinement_utils.h"
+#include "refiner_content.h"
 
 namespace py = pybind11;
 
-PYBIND11_MODULE(py_refinery, m) {
-    m.doc() = "py-refinery PyBind11 module - hybrid inverse problem solving engine";
+PYBIND11_MODULE(_core, m) {
+    m.doc() = "py-refinery PyBind11 module - adaptive inverse problem solving engine";
 
     // Bind classes
     py::class_<Datapoint>(m, "Datapoint")

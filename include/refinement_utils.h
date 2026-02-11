@@ -99,7 +99,7 @@ public:
     virtual State optimize(const State& current_state) = 0;
     
 protected:
-    double infinitesimal = 1e-6; // infinitesimal step size
+    static constexpr double infinitesimal = 1e-6; // infinitesimal step size
     std::function<Feature(const Groundtruth&)> forward_function; // can capture variables
     std::function<double(const Groundtruth&, const Feature&)> loss_function;
     double compute_loss(const Groundtruth& gt) {

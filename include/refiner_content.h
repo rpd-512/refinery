@@ -170,7 +170,7 @@ public:
         std::function<Feature(const Groundtruth&)> forward_function,
         std::function<double(const Groundtruth&, const Feature&)> loss_function,
         double learning_rate = 0.01,
-        double epsilon = this->infinitesimal;
+        double epsilon = infinitesimal
     ) : Optimizer(forward_function, loss_function),
         learning_rate(learning_rate), epsilon(epsilon) {}
     State optimize(const State& current_state) override {
@@ -205,7 +205,7 @@ public:
         std::function<double(const Groundtruth&, const Feature&)> loss_function,
         double learning_rate = 0.001,
         double decay_rate = 0.99,
-        double epsilon = this->infinitesimal
+        double epsilon = infinitesimal
     ) : Optimizer(forward_function, loss_function),
         learning_rate(learning_rate), decay_rate(decay_rate), epsilon(epsilon) {}
 
